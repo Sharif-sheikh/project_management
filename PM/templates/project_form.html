@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if form.instance.pk %}
+        Edit {{ form.instance.name }}
+    {% else %}
+        Create New Project
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Use the content-card for a consistent outer container -->
+            <div class="content-card">
+                
+                <!-- Page Header -->
+                <div class="text-center mb-4">
+                    <h1 class="h3">
+                        {% if form.instance.pk %}
+                            Edit Project Details
+                        {% else %}
+                            Create a New Project
+                        {% endif %}
+                    </h1>
+                    <p class="text-muted">
+                        {% if form.instance.pk %}
+                            Update the information for your project below.
+                        {% else %}
+                            Fill out the details below to get your new project started.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Project Form -->
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Crispy forms will render the fields -->
+                    <div class="mb-4">
+                        {{ form|crispy }}
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% if form.instance.pk %}{% url 'project_detail' form.instance.pk %}{% else %}{% url 'project_list' %}{% endif %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if form.instance.pk %}
+                                <i class="bi bi-check-circle me-2"></i>Save Changes
+                            {% else %}
+                                <i class="bi bi-plus-circle me-2"></i>Create Project
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

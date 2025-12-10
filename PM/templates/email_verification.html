@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Email Verification - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 col-xl-5">
+      <!-- Using the content-card class for consistent styling -->
+      <div class="content-card text-center">
+        
+        <!-- Header with an engaging icon -->
+        <div class="mb-4">
+          <i class="bi bi-envelope-check-fill text-primary" style="font-size: 3rem;"></i>
+        </div>
+        
+        <h1 class="h3 mb-2">Verify Your Email</h1>
+        <p class="text-muted mb-4">We've sent a 6-digit code to your email. Please enter it below to proceed.</p>
+
+        <!-- Verification Form -->
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            <!-- Using crispy forms would be ideal here if the form is passed from the view -->
+            <!-- {{ form|crispy }} -->
+
+            <!-- Manual form rendering with improved styling -->
+            <div class="mb-3 text-start">
+              <label for="id_username" class="form-label">Username</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input
+                  type="text"
+                  name="username"
+                  id="id_username"
+                  required
+                  class="form-control"
+                  placeholder="Your username">
+              </div>
+            </div>
+
+            <div class="mb-4 text-start">
+              <label for="id_otp" class="form-label">Verification Code</label>
+              <div class="input-group">
+                 <span class="input-group-text"><i class="bi bi-key"></i></span>
+                <input
+                  type="text"
+                  name="otp"
+                  id="id_otp"
+                  required
+                  class="form-control"
+                  placeholder="Enter 6-digit code">
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-check-circle me-2"></i>Verify & Proceed
+              </button>
+            </div>
+        </form>
+
+      </div>
+
+      <!-- Footer link for resending OTP -->
+      <div class="text-center mt-4">
+        <p class="text-muted">Didn't receive the code? 
+            <a href="{% url 'forgot_password' %}" class="fw-medium text-decoration-none">Resend Code</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

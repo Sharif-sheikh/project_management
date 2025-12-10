@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Login - ProjectFlow{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 col-xl-5">
+      <!-- Using the content-card for a consistent, styled container -->
+      <div class="content-card">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-4">
+          <h1 class="h3 mb-3">Welcome Back!</h1>
+          <p class="text-muted">Login to access your dashboard and manage your projects.</p>
+        </div>
+
+        <!-- Login Form -->
+        <form method="post" novalidate>
+          {% csrf_token %}
+          
+          <!-- Crispy forms will render the fields. The layout can be controlled via helpers in forms.py,
+               but this structure provides a good default appearance. -->
+          <div class="mb-4">
+            {{ form|crispy }}
+          </div>
+          
+          <!-- Forgot Password Link -->
+          <div class="text-end mb-4">
+            <a href="{% url 'forgot_password' %}" class="small text-decoration-none">Forgot Password?</a>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Login
+            </button>
+          </div>
+        </form>
+        <div class="text-center mt-4">
+        <p class="text-muted">Don't have an account? 
+          <a href="{% url 'register' %}" class="fw-medium text-decoration-none">Sign up for free</a>
+        </p>
+      </div>
+      </div>
+
+      
+      
+    </div>
+  </div>
+</div>
+{% endblock %}

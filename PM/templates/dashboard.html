@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - {{ block.super }}{% endblock %}
+
+{% block content %}
+
+<style>
+/* Smooth fade-in */
+.dashboard-fade {
+    animation: fadeIn 0.7s ease-in-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* CTA Button Hover */
+.create-btn {
+    border-radius: 10px;
+    transition: 0.25s ease;
+}
+.create-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 18px rgba(13,110,253,0.25);
+}
+
+/* Calendar toggle fade */
+#calendar-container {
+    animation: fadeSlide 0.45s ease;
+}
+@keyframes fadeSlide {
+    0% { opacity: 0; transform: translateY(-12px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Better cards */
+.card {
+    border-radius: 1rem !important;
+}
+.card-header {
+    border-radius: 1rem 1rem 0 0 !important;
+    background: #f8f9fc !important;
+    font-weight: 600;
+}
+
+/* List Group Improved */
+.list-group-item {
+    padding: 1rem 1.2rem;
+    transition: 0.15s ease;
+}
+.list-group-item:hover {
+    background: #f5f7ff;
+}
+
+/* Badge improvements */
+.bg-success-subtle {
+    background:#d3f4df !important;
+}
+.bg-info-subtle {
+    background:#cff1ff !important;
+}
+.bg-secondary-subtle {
+    background:#e2e3e5 !important;
+}
+
+/* Action dropdown */
+.btn-outline-secondary {
+    border-radius: 8px;
+}
+</style>
+
+<div class="content-card dashboard-fade">
+
+    <!-- DASHBOARD HEADER -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div>
+            <h1 class="h2 mb-1">Welcome back, {{ user.username|default:'User' }}</h1>
+            <p class="text-muted mb-0">Here’s an overview of your work today.</p>
+        </div>
+
+        <a href="{% url 'project_create' %}" class="btn btn-primary create-btn mt-3 mt-md-0">
+            <i class="bi bi-plus-circle me-1"></i> Create New Project
+        </a>
+    </div>
+
+    <!-- CALENDAR SECTION -->
+    <div class="mb-5">
+        <button id="toggle-calendar-btn" class="btn btn-outline-info mb-3" type="button">
+            <i class="bi bi-calendar-event me-1"></i> Show My Task Calendar
+        </button>
+
+        <div id="calendar-container" style="display: none">
+            <div class="card shadow border-0">
+                <div class="card-header py-3">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-calendar-event me-2 text-info"></i>
+                        My Task Calendar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="task-calendar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ---------------- MY PROJECTS ---------------- -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header py-3">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-briefcase-fill me-2 text-primary"></i>My Projects
+                    </h5>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    {% for project in my_projects %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <a href="{% url 'project_detail' project.id %}"
+                           class="text-decoration-none text-dark fw-semibold">
+                            {{ project.name }}
+                        </a>
+                        <i class="bi bi-chevron-right text-muted"></i>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted p-4">
+                        No projects yet — start by creating your first one!
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- ---------------- MY TASKS ---------------- -->
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header py-3">
+                    <h5 class="mb-0 d-flex align-items-center">
+                        <i class="bi bi-check2-square me-2 text-success"></i>My Tasks
+                    </h5>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    {% for task in assigned_tasks %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        
+                        <div>
+                            <p class="mb-1 fw-semibold">{{ task.title }}</p>
+
+                            <small class="text-muted">
+                                In:
+                                <a href="{% url 'project_detail' task.project.id %}" 
+                                   class="text-primary fw-medium text-decoration-none">
+                                    {{ task.project.name }}
+                                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.75rem"></i>
+                                </a>
+                            </small>
+                        </div>
+
+                        <div class="d-flex align-items-center">
+
+                            {% if task.status == 'done' %}
+                            <span class="badge bg-success-subtle text-success-emphasis rounded-pill me-3">
+                                {{ task.get_status_display }}
+                            </span>
+                            {% elif task.status == 'in_progress' %}
+                            <span class="badge bg-info-subtle text-info-emphasis rounded-pill me-3">
+                                {{ task.get_status_display }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill me-3">
+                                {{ task.get_status_display }}
+                            </span>
+                            {% endif %}
+
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                        data-bs-toggle="dropdown">
+                                    Actions
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item"
+                                           href="{% url 'task_update_status' task.id 'in_progress' %}">
+                                        <i class="bi bi-play-circle me-2"></i> Mark as In Progress
+                                    </a></li>
+                                    <li><a class="dropdown-item"
+                                           href="{% url 'task_update_status' task.id 'done' %}">
+                                        <i class="bi bi-check-circle me-2"></i> Mark as Done
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+
+                    {% empty %}
+                    <li class="list-group-item text-center text-muted p-4">
+                        You're all caught up — no tasks assigned! 🎉
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- FullCalendar -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var toggleBtn = document.getElementById('toggle-calendar-btn');
+    var calendarContainer = document.getElementById('calendar-container');
+    var calendar = null;
+    var visible = false;
+
+    toggleBtn.addEventListener('click', function() {
+        if (!visible) {
+            calendarContainer.style.display = '';
+            toggleBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Hide My Task Calendar';
+
+            if (!calendar) {
+                var calendarEl = document.getElementById('task-calendar');
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    height: 500,
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                    },
+                    events: [
+                        {% for task in assigned_tasks %}
+                        {% if task.status != 'done' %}
+                        {
+                            title: `{{ task.title|escapejs }}`,
+                            start: '{{ task.created_at|date:"Y-m-d" }}',
+                            end: '{{ task.deadline|date:"Y-m-d" }}',
+                            url: '{% url "project_detail" task.project.id %}',
+                            color: '#0d6efd',
+                        },
+                        {% endif %}
+                        {% endfor %}
+                    ],
+                    eventClick: function(info) {
+                        if (info.event.url) {
+                            window.open(info.event.url, '_blank');
+                            info.jsEvent.preventDefault();
+                        }
+                    },
+                    nowIndicator: true,
+                });
+                calendar.render();
+            }
+
+            visible = true;
+
+        } else {
+            calendarContainer.style.display = 'none';
+            toggleBtn.innerHTML = '<i class="bi bi-calendar-event me-1"></i> Show My Task Calendar';
+            visible = false;
+        }
+    });
+});
+</script>
+
+{% endblock %}

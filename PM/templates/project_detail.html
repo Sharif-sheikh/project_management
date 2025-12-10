@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}{{ project.name }} - Project Details{% endblock %}
+
+{% block content %}
+
+<style>
+/* Animated progress bar */
+.progress-bar {
+    transition: width 0.9s ease-in-out;
+}
+
+/* Hover lift for the main header block */
+.header-lift {
+    transition: 0.25s ease;
+}
+.header-lift:hover {
+    transform: translateY(-4px);
+}
+
+/* Table hover (already included but polished) */
+.table-hover tbody tr:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.03) !important;
+}
+
+/* Mobile stacked table */
+@media (max-width: 576px) {
+    table.mobile-stack thead { display: none; }
+    table.mobile-stack tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 0.6rem;
+        padding: 0.8rem;
+        background: #fff;
+    }
+    table.mobile-stack tbody td {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.35rem 0 !important;
+        border: none !important;
+    }
+    table.mobile-stack tbody td::before {
+        content: attr(data-label);
+        font-weight: 500;
+        color: var(--bs-secondary-color);
+    }
+    table.mobile-stack tbody td.actions-cell {
+        justify-content: flex-end;
+    }
+}
+</style>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <div class="content-card">
+
+                <!-- PROJECT HEADER -->
+                <div class="pb-4 mb-4 border-bottom header-lift">
+                    <h1 class="h2 mb-1 fw-bold">{{ project.name }}</h1>
+                    <p class="text-muted">{{ project.description }}</p>
+
+                    <!-- PROGRESS BAR -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-semibold">Project Progress</span>
+                            <span class="fw-medium text-muted">{{ progress }}% Complete</span>
+                        </div>
+
+                        <div class="progress" style="height: 12px; border-radius: 7px;">
+                            <div class="progress-bar
+                                {% if progress < 40 %}
+                                    bg-danger
+                                {% elif progress < 70 %}
+                                    bg-warning
+                                {% else %}
+                                    bg-success
+                                {% endif %}"
+                                role="progressbar"
+                                style="width: {{ progress }}%;"
+                                aria-valuenow="{{ progress }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TASKS SECTION -->
+                <div>
+                    <!-- Task Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-semibold mb-0">Project Tasks</h4>
+                        <a href="{% url 'task_create' project.id %}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Add New Task
+                        </a>
+                    </div>
+
+                    <!-- TASK TABLE -->
+                    <div class="table-responsive">
+                        <table class="table align-middle table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Assignee</th>
+                                    <th>Deadline</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'task_edit' task.id %}"
+                                           class="text-decoration-none fw-medium">
+                                            {{ task.title }}
+                                        </a>
+                                    </td>
+
+                                    <td>
+                                        {% if task.description %}
+                                        <p class="line-clamp-2">{{ task.description }}</p>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        {% if task.assignee %}
+                                            {{ task.assignee.get_full_name|default:task.assignee.username }}
+                                        {% else %}
+                                            <span class="text-muted">Unassigned</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <td>{{ task.deadline|date:'Y-m-d H:i' }}</td>
+
+                                    <td>
+                                        {% if task.status == 'done' %}
+                                        <span class="badge bg-success-subtle text-success-emphasis">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                        {% elif task.status == 'in_progress' %}
+                                        <span class="badge bg-info-subtle text-info-emphasis">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis">
+                                            {{ task.get_status_display }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                  
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{% url 'task_edit' task.id %}"
+                                               class="btn btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </a>
+
+                                            <a href="{% url 'task_delete' task.id %}"
+                                               class="btn btn-outline-danger">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </a>
+                                        </div>
+                                    </td>
+                            
+                                </tr>
+
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-5">
+                                        No tasks yet. Start by adding one!
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

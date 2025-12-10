@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Profile - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Use the content-card for a consistent outer container -->
+            <div class="content-card">
+                
+                <!-- Page Header -->
+                <div class="text-center mb-4">
+                    <h1 class="h3">Edit Your Profile</h1>
+                    <p class="text-muted">Keep your profile information up to date.</p>
+                </div>
+
+                <!-- Edit Profile Form -->
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Crispy forms will render the fields. Using a div wrapper for styling consistency. -->
+                    <div class="mb-4">
+                        {{ form|crispy }}
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'profile' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-2"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
