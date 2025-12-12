@@ -11,8 +11,9 @@ from django.utils import timezone
 from django.db.models import Q
 import random
 
-from .models import Project, Task, Profile, EmailOTP
-from .forms import UserRegisterForm, ProjectForm, TaskForm, ProfileForm
+from .models import Project, Task, Profile, EmailOTP,ProjectMessage
+from .forms import UserRegisterForm, ProjectForm, TaskForm, ProfileForm,ProjectMessageForm
+from .utils import is_project_team_member
 
 def generate_otp():
     return str(random.randint(100000, 999999))
@@ -268,3 +269,34 @@ def profile_edit(request):
     else:
         form = ProfileForm(instance=profile)
     return render(request, "profile_edit.html", {"form": form})
+
+# ---------------- PROJECT CHAT VIEWS ----------------
+
+
+
+
+@login_required
+def project_chat(request, pk):
+    project = get_object_or_404(Project, pk=pk)
+
+    # Permission check
+    if not is_project_team_member(request.user, project):
+        return HttpResponseForbidden("You are not allowed to access this chat.")
+
+    messages_list = project.messages.all()
+    form = ProjectMessageForm()
+
+    if request.method == "POST":
+        form = ProjectMessageForm(request.POST, request.FILES)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.project = project
+            msg.user = request.user
+            msg.save()
+            return redirect("project_chat", pk=project.id)
+
+    return render(request, "project_chat.html", {
+        "project": project,
+        "messages": messages_list,
+        "form": form
+    })

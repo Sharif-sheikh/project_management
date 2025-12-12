@@ -60,3 +60,17 @@ class EmailOTP(models.Model):
     otp = models.CharField(max_length=6)
     is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+
+class ProjectMessage(models.Model):
+    project = models.ForeignKey("Project", on_delete=models.CASCADE, related_name="messages")
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField(blank=True)
+    file = models.FileField(upload_to="chat_resources/", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.project.name}"

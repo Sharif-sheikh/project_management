@@ -30,4 +30,8 @@ urlpatterns = [
     # Profile
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
+    
+    # Project Chat
+    path("projects/<int:pk>/chat/", views.project_chat, name="project_chat"),
+
 ]

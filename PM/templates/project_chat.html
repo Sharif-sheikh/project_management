@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Team Chat - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <h2 class="mb-4">Team Chat — {{ project.name }}</h2>
+
+    <!-- Chat Window -->
+    <div class="border rounded p-3 mb-4"
+         style="height: 480px; overflow-y: scroll; background-color: #f9f9f9;">
+
+        {% for message in messages %}
+            <div class="mb-3 pb-2 border-bottom">
+
+                <div class="d-flex justify-content-between">
+                    <strong>{{ message.user.get_full_name|default:message.user.username }}</strong>
+                    <small class="text-muted">{{ message.created_at }}</small>
+                </div>
+
+                {% if message.text %}
+                    <p class="mb-1">{{ message.text }}</p>
+                {% endif %}
+
+                {% if message.file %}
+                    <a href="{{ message.file.url }}" class="text-primary" download>
+                        Download Attached File
+                    </a>
+                {% endif %}
+
+            </div>
+        {% empty %}
+            <p class="text-muted">No messages yet. Start the conversation below.</p>
+        {% endfor %}
+
+    </div>
+
+    <!-- Send Message Form -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Send a Message</h5>
+
+            <form method="post" enctype="multipart/form-data" class="mt-3">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    {{ form.text.label_tag }}
+                    {{ form.text }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form.file.label_tag }}
+                    {{ form.file }}
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Project, Task, Profile
+from .models import Project, Task, Profile, ProjectMessage
 
 
 class UserRegisterForm(UserCreationForm):
@@ -50,3 +50,19 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ["avatar", "github", "linkedin", "address", "occupation"]
+
+
+
+class ProjectMessageForm(forms.ModelForm):
+    class Meta:
+        model = ProjectMessage
+        fields = ["text", "file"]
+
+        widgets = {
+            "text": forms.Textarea(attrs={
+                "rows": 2,
+                "class": "form-control",
+                "placeholder": "Write a message..."
+            }),
+            "file": forms.ClearableFileInput(attrs={"class": "form-control"})
+        }
