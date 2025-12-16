@@ -283,7 +283,8 @@ def project_chat(request, pk):
     if not is_project_team_member(request.user, project):
         return HttpResponseForbidden("You are not allowed to access this chat.")
 
-    messages_list = project.messages.all()
+    
+    messages_list = project.messages.order_by("created_at") 
     form = ProjectMessageForm()
 
     if request.method == "POST":

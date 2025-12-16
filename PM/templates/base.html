@@ -145,8 +145,10 @@
     </nav>
 
     <!-- MAIN CONTENT -->
-    <main class="main-content container" style="padding-top: 7rem;">
-        
+<main class="main-content container" style="padding-top: 7rem;">
+    
+    {# Hide Django popup alerts ONLY on the project chat page #}
+    {% if request.resolver_match.url_name != "project_chat" %}
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} d-flex align-items-center">
@@ -155,12 +157,12 @@
                 </div>
             {% endfor %}
         {% endif %}
+    {% endif %}
 
-        {% block content %}
-        {% endblock %}
+    {% block content %}
+    {% endblock %}
 
-    </main>
-
+</main>
     <!-- FOOTER -->
     <footer class="footer mt-auto">
         <div class="container text-center">
