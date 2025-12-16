@@ -5,346 +5,512 @@
 {% block content %}
 <div class="container py-4 chat-page">
 
-    <style>
-        .chat-page .chat-shell {
-            border: 1px solid rgba(0,0,0,.08);
-            border-radius: 14px;
-            overflow: hidden;
-            background: #fff;
-            box-shadow: 0 10px 24px rgba(16,24,40,.06);
-        }
+  <style>
+    .chat-page .chat-shell {
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 10px 24px rgba(16,24,40,.06);
+    }
 
-        .chat-page .chat-header {
-            padding: 14px 16px;
-            background: linear-gradient(135deg, #0d6efd 0%, #4c8dff 100%);
-            color: #fff;
-        }
+    .chat-page .chat-header {
+      padding: 14px 16px;
+      background: linear-gradient(135deg, #0d6efd 0%, #4c8dff 100%);
+      color: #fff;
+      display:flex;
+      justify-content: space-between;
+      align-items:flex-end;
+      gap: 12px;
+    }
 
-        .chat-page .chat-header h2 {
-            font-size: 1.15rem;
-            margin: 0;
-            font-weight: 700;
-        }
+    .chat-page .chat-header h2 {
+      font-size: 1.15rem;
+      margin: 0;
+      font-weight: 700;
+    }
 
-        .chat-page .chat-window {
-            height: 520px;
-            overflow-y: auto;
-            background:
-                radial-gradient(circle at 25px 25px, rgba(13,110,253,.06) 2px, transparent 2.5px) 0 0/28px 28px,
-                #f8fafc;
-            padding: 16px;
-        }
+    .chat-page .chat-header small { opacity: .95; }
 
-        /* Message row */
-        .chat-page .msg {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 12px;
-            align-items: flex-start;
-        }
+    .chat-page .chat-window {
+      height: 520px;
+      overflow-y: auto;
+      background:
+        radial-gradient(circle at 25px 25px, rgba(13,110,253,.06) 2px, transparent 2.5px) 0 0/28px 28px,
+        #f8fafc;
+      padding: 16px;
+    }
 
-        /* My messages align right */
-        .chat-page .msg.mine {
-            flex-direction: row-reverse;
-        }
+    .chat-page .msg {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
 
-        .chat-page .avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: #e9ecef;
-            display: grid;
-            place-items: center;
-            font-weight: 700;
-            color: #495057;
-            flex: 0 0 auto;
-            border: 1px solid rgba(0,0,0,.06);
-        }
+    .chat-page .msg.mine { flex-direction: row-reverse; }
 
-        .chat-page .bubble {
-            max-width: min(720px, 80%);
-            flex: 1 1 auto;
-            background: #fff;
-            border: 1px solid rgba(0,0,0,.06);
-            border-radius: 14px;
-            padding: 10px 12px;
-        }
+    .chat-page .avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #e9ecef;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      color: #495057;
+      border: 1px solid rgba(0,0,0,.06);
+      flex: 0 0 auto;
+      user-select: none;
+    }
 
-        /* Different color for my bubble */
-        .chat-page .msg.mine .bubble {
-            background: rgba(13,110,253,.10);
-            border-color: rgba(13,110,253,.18);
-        }
+    .chat-page .bubble {
+      max-width: min(720px, 82%);
+      flex: 1 1 auto;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.06);
+      border-radius: 14px;
+      padding: 10px 12px;
+      position: relative;
+    }
 
-        .chat-page .meta {
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 6px;
-            align-items: baseline;
-        }
+    .chat-page .msg.mine .bubble {
+      background: rgba(13,110,253,.10);
+      border-color: rgba(13,110,253,.18);
+    }
 
-        .chat-page .msg.mine .meta {
-            flex-direction: row-reverse;
-        }
+    .chat-page .meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
 
-        .chat-page .meta strong {
-            font-size: .95rem;
-        }
+    .chat-page .msg.mine .meta { flex-direction: row-reverse; }
 
-        .chat-page .meta small {
-            color: #6c757d;
-            white-space: nowrap;
-        }
+    .chat-page .meta strong { font-size: .95rem; }
+    .chat-page .meta small { color: #6c757d; white-space: nowrap; }
 
-        .chat-page .msg-text {
-            margin: 0;
-            color: #212529;
-            line-height: 1.35rem;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
+    .chat-page .msg-text {
+      margin: 0;
+      color: #212529;
+      line-height: 1.35rem;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
 
-        .chat-page .attachment {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 8px;
-            padding: 8px 10px;
-            border-radius: 12px;
-            background: rgba(13,110,253,.06);
-            border: 1px solid rgba(13,110,253,.12);
-            text-decoration: none;
-        }
+    /* Reply context (shows only if backend provides message.reply_to) */
+    .chat-page .reply-context {
+      border-left: 3px solid rgba(13,110,253,.55);
+      background: rgba(13,110,253,.06);
+      padding: 8px 10px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: .92rem;
+    }
+    .chat-page .reply-context .preview {
+      display: block;
+      color: #6c757d;
+      margin-top: 2px;
+    }
+    .chat-page .reply-context a { text-decoration: none; }
 
-        .chat-page .attachment:hover {
-            background: rgba(13,110,253,.10);
-        }
+    /* Message actions */
+    .chat-page .actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 12px;
+      font-size: .9rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .chat-page .msg.mine .actions { justify-content: flex-end; }
 
-        .chat-page .attachment .filename {
-            font-weight: 700;
-            color: #0d6efd;
-        }
+    .chat-page .reply-btn,
+    .chat-page .delete-btn {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: .9rem;
+    }
+    .chat-page .reply-btn { color: #0d6efd; }
+    .chat-page .reply-btn:hover { color: #0b5ed7; }
+    .chat-page .delete-btn { color: #dc3545; }
+    .chat-page .delete-btn:hover { color: #b02a37; }
 
-        .chat-page .composer {
-            padding: 14px;
-            background: #fff;
-            border-top: 1px solid rgba(0,0,0,.06);
-        }
+    /* Attachment */
+    .chat-page .attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(13,110,253,.06);
+      border: 1px solid rgba(13,110,253,.12);
+      text-decoration: none;
+    }
+    .chat-page .attachment:hover { background: rgba(13,110,253,.10); }
+    .chat-page .attachment .filename { font-weight: 700; color: #0d6efd; }
 
-        .chat-page .composer .form-control {
-            border-radius: 12px;
-        }
+    /* Mentions (Level 1 UI-only) */
+    .chat-page .mention {
+      color: #0d6efd;
+      font-weight: 700;
+      background: rgba(13,110,253,.10);
+      padding: 0 6px;
+      border-radius: 999px;
+      white-space: nowrap;
+      text-decoration: none;
+    }
 
-        .chat-page textarea.form-control {
-            min-height: 52px;
-            max-height: 140px;
-            resize: vertical;
-        }
+    /* Composer */
+    .chat-page .composer {
+      padding: 14px;
+      background: #fff;
+      border-top: 1px solid rgba(0,0,0,.06);
+    }
 
-        .chat-page .composer-row {
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 10px;
-            align-items: end;
-        }
+    .chat-page .composer-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
 
-        .chat-page .attach-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
+    .chat-page textarea.form-control {
+      border-radius: 12px;
+      min-height: 52px;
+      max-height: 160px;
+      resize: vertical;
+    }
 
-        .chat-page .file-input {
-            position: absolute;
-            left: -9999px;
-        }
+    .chat-page .send-btn {
+      border-radius: 12px;
+      padding-left: 16px;
+      padding-right: 16px;
+      height: 52px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
 
-        .chat-page .attach-btn {
-            border-radius: 999px;
-        }
+    /* Reply preview above composer */
+    .chat-page .reply-preview {
+      display: none;
+      border: 1px solid rgba(0,0,0,.08);
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .chat-page .reply-preview .top {
+      display:flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .chat-page .reply-preview .who { font-weight: 700; }
+    .chat-page .reply-preview .snippet { color: #6c757d; font-size: .92rem; }
+    .chat-page .reply-preview .cancel-reply {
+      border: 0;
+      background: transparent;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: #6c757d;
+      cursor: pointer;
+    }
 
-        .chat-page .file-chip {
-            display: none;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #f1f3f5;
-            border: 1px solid rgba(0,0,0,.06);
-            font-size: .9rem;
-        }
+    /* Attach UI */
+    .chat-page .attach-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
 
-        .chat-page .file-chip button {
-            border: 0;
-            background: transparent;
-            padding: 0 2px;
-            font-size: 1.1rem;
-            line-height: 1;
-            color: #6c757d;
-        }
+    .chat-page .file-input { position: absolute; left: -9999px; }
+    .chat-page .attach-btn { border-radius: 999px; }
 
-        .chat-page .send-btn {
-            border-radius: 12px;
-            padding-left: 16px;
-            padding-right: 16px;
-            height: 52px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
+    .chat-page .file-chip {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #f1f3f5;
+      border: 1px solid rgba(0,0,0,.06);
+      font-size: .9rem;
+    }
 
-        .chat-page .hint {
-            color: #6c757d;
-            font-size: .9rem;
-            margin-top: 8px;
-        }
-    </style>
+    .chat-page .file-chip button {
+      border: 0;
+      background: transparent;
+      padding: 0 2px;
+      font-size: 1.1rem;
+      line-height: 1;
+      color: #6c757d;
+      cursor: pointer;
+    }
 
-    <div class="chat-shell">
-        <div class="chat-header">
-            <div class="d-flex justify-content-between align-items-end">
-                <h2>Team Chat — {{ project.name }}</h2>
-                <small>Enter to send • Shift+Enter for new line</small>
-            </div>
-        </div>
+    .chat-page .hint { color: #6c757d; font-size: .9rem; margin-top: 8px; }
+  </style>
 
-        <!-- Chat Window -->
-        <div id="chatWindow" class="chat-window">
-            {% for message in messages %}
-                <div class="msg {% if message.user == request.user %}mine{% else %}theirs{% endif %}">
-                    <div class="avatar" title="{{ message.user.username }}">
-                        {{ message.user.get_full_name|default:message.user.username|slice:":1"|upper }}
-                    </div>
-
-                    <div class="bubble">
-                        <div class="meta">
-                            <strong>
-                                {% if message.user == request.user %}
-                                    You
-                                {% else %}
-                                    {{ message.user.get_full_name|default:message.user.username }}
-                                {% endif %}
-                            </strong>
-                            <small class="text-muted">{{ message.created_at }}</small>
-                        </div>
-
-                        {% if message.text %}
-                            <p class="msg-text">{{ message.text }}</p>
-                        {% endif %}
-
-                        {% if message.file %}
-                            <a href="{{ message.file.url }}" class="attachment" download>
-                                <span class="filename">
-                                    {{ message.file.name|cut:"chat_resources/" }}
-                                </span>
-                                <span class="text-muted">Download</span>
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            {% empty %}
-                <p class="text-muted m-0">No messages yet. Start the conversation below.</p>
-            {% endfor %}
-        </div>
-
-        <!-- Send Message Form -->
-        <div class="composer">
-            <form id="chatForm" method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-
-                <div class="composer-row">
-                    <div>
-                        {{ form.text.label_tag }}
-                        {{ form.text }}
-                    </div>
-
-                    <button id="sendBtn" type="submit" class="btn btn-primary send-btn">
-                        Send
-                    </button>
-                </div>
-
-                <div class="attach-row">
-                    <input id="fileInput" class="file-input" type="file" name="{{ form.file.name }}" />
-
-                    <button type="button" id="attachBtn" class="btn btn-outline-primary attach-btn">
-                        Attach file
-                    </button>
-
-                    <div id="fileChip" class="file-chip">
-                        <span id="fileName"></span>
-                        <button type="button" id="clearFile" aria-label="Remove file">&times;</button>
-                    </div>
-
-                    <div class="hint">Tip: Press <strong>Enter</strong> to send, <strong>Shift+Enter</strong> for a new line.</div>
-                </div>
-            </form>
-        </div>
+  <div class="chat-shell">
+    <div class="chat-header">
+      <h2>Team Chat — {{ project.name }}</h2>
+      <small>Enter to send • Shift+Enter for new line • @mentions (UI-only) • Delete own messages</small>
     </div>
 
-    <script>
-        (function () {
-            const chatWindow = document.getElementById('chatWindow');
-            if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+    <!-- Chat Window -->
+    <div id="chatWindow" class="chat-window">
+      {% for message in messages %}
+        <div id="msg-{{ message.id }}" class="msg {% if message.user == request.user %}mine{% else %}theirs{% endif %}">
+          <div class="avatar" title="{{ message.user.username }}">
+            {{ message.user.get_full_name|default:message.user.username|slice:":1"|upper }}
+          </div>
 
-            const form = document.getElementById('chatForm');
-            const sendBtn = document.getElementById('sendBtn');
+          <div class="bubble">
+            <div class="meta">
+              <strong>
+                {% if message.user == request.user %}
+                  You
+                {% else %}
+                  {{ message.user.get_full_name|default:message.user.username }}
+                {% endif %}
+              </strong>
+              <small class="text-muted">{{ message.created_at }}</small>
+            </div>
 
-            // Ensure textarea gets Bootstrap styling even if widget isn't configured
-            const textarea = document.querySelector('textarea[name="{{ form.text.name }}"]');
-            if (textarea && !textarea.classList.contains('form-control')) textarea.classList.add('form-control');
-            if (textarea) textarea.setAttribute('placeholder', 'Write a message…');
+            {% if message.reply_to %}
+              <div class="reply-context">
+                Replying to
+                <a href="#msg-{{ message.reply_to.id }}">
+                  <strong>{{ message.reply_to.user.get_full_name|default:message.reply_to.user.username }}</strong>
+                </a>
+                <span class="preview">
+                  {{ message.reply_to.text|default:"(attachment)"|truncatechars:80 }}
+                </span>
+              </div>
+            {% endif %}
 
-            // Enter to send, Shift+Enter to newline
-            if (textarea && form) {
-                textarea.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        // avoid sending empty message with no file
-                        const fileInput = document.getElementById('fileInput');
-                        const hasText = textarea.value.trim().length > 0;
-                        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+            {% if message.text %}
+              <p class="msg-text message-text">{{ message.text }}</p>
+            {% endif %}
 
-                        if (hasText || hasFile) {
-                            if (sendBtn) sendBtn.disabled = true; // basic double-submit protection
-                            form.submit();
-                        }
-                    }
-                });
-            }
+            {% if message.file %}
+              <a href="{{ message.file.url }}" class="attachment" download>
+                <span class="filename">{{ message.file.name|cut:"chat_resources/" }}</span>
+                <span class="text-muted">Download</span>
+              </a>
+            {% endif %}
 
-            // Custom file attach UI
+            <div class="actions">
+              <button
+                type="button"
+                class="reply-btn"
+                data-message-id="{{ message.id }}"
+                data-user="{% if message.user.get_full_name %}{{ message.user.get_full_name }}{% else %}{{ message.user.username }}{% endif %}"
+                data-preview="{{ message.text|default:'(attachment)'|truncatechars:80 }}"
+              >
+                Reply
+              </button>
+
+              {% if message.user == request.user or project.manager == request.user %}
+                <form method="post"
+                      action="{% url 'project_message_delete' project.id message.id %}"
+                      style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit"
+                          class="delete-btn"
+                          onclick="return confirm('Delete this message?');">
+                    Delete
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <p class="text-muted m-0">No messages yet. Start the conversation below.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Composer -->
+    <div class="composer">
+      <form id="chatForm" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {# If your form has reply_to hidden field it will render; otherwise fallback works #}
+        {% if form.reply_to %}
+          {{ form.reply_to }}
+        {% else %}
+          <input type="hidden" name="reply_to" id="replyToInput" />
+        {% endif %}
+
+        <div id="replyPreview" class="reply-preview">
+          <div class="top">
+            <div>
+              <div class="who">Replying to <span id="replyToUser"></span></div>
+              <div class="snippet" id="replyToSnippet"></div>
+            </div>
+            <button type="button" class="cancel-reply" id="cancelReply" aria-label="Cancel reply">&times;</button>
+          </div>
+        </div>
+
+        <div class="composer-row">
+          <div>
+            {{ form.text.label_tag }}
+            {{ form.text }}
+          </div>
+
+          <button id="sendBtn" type="submit" class="btn btn-primary send-btn">
+            Send
+          </button>
+        </div>
+
+        <div class="attach-row">
+          <input id="fileInput" class="file-input" type="file" name="{{ form.file.name }}" />
+
+          <button type="button" id="attachBtn" class="btn btn-outline-primary attach-btn">
+            Attach file
+          </button>
+
+          <div id="fileChip" class="file-chip">
+            <span id="fileName"></span>
+            <button type="button" id="clearFile" aria-label="Remove file">&times;</button>
+          </div>
+
+          <div class="hint">
+            Tip: Type <strong>@username</strong> to mention (highlight only).
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const chatWindow = document.getElementById('chatWindow');
+      if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
+
+      const form = document.getElementById('chatForm');
+      const sendBtn = document.getElementById('sendBtn');
+
+      // Ensure textarea styling
+      const textarea =
+        document.querySelector('textarea[name="{{ form.text.name }}"]') ||
+        document.querySelector('textarea');
+      if (textarea && !textarea.classList.contains('form-control')) textarea.classList.add('form-control');
+      if (textarea) textarea.setAttribute('placeholder', 'Write a message…');
+
+      // Reply controls (harmless if backend doesn't store reply_to)
+      const replyPreview = document.getElementById('replyPreview');
+      const replyToUser = document.getElementById('replyToUser');
+      const replyToSnippet = document.getElementById('replyToSnippet');
+      const cancelReply = document.getElementById('cancelReply');
+
+      const replyToInput =
+        document.querySelector('input[name="reply_to"]') ||
+        document.getElementById('replyToInput');
+
+      function setReply(id, user, preview) {
+        if (!replyToInput) return;
+        replyToInput.value = id;
+
+        if (replyToUser) replyToUser.textContent = user || '';
+        if (replyToSnippet) replyToSnippet.textContent = preview || '';
+        if (replyPreview) replyPreview.style.display = 'block';
+
+        if (textarea) textarea.focus();
+      }
+
+      function clearReply() {
+        if (!replyToInput) return;
+        replyToInput.value = '';
+        if (replyPreview) replyPreview.style.display = 'none';
+        if (replyToUser) replyToUser.textContent = '';
+        if (replyToSnippet) replyToSnippet.textContent = '';
+      }
+
+      document.querySelectorAll('.reply-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-message-id');
+          const user = btn.getAttribute('data-user');
+          const preview = btn.getAttribute('data-preview');
+          setReply(id, user, preview);
+        });
+      });
+
+      if (cancelReply) cancelReply.addEventListener('click', clearReply);
+
+      // Enter to send, Shift+Enter newline
+      if (textarea && form) {
+        textarea.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+
             const fileInput = document.getElementById('fileInput');
-            const attachBtn = document.getElementById('attachBtn');
-            const fileChip = document.getElementById('fileChip');
-            const fileName = document.getElementById('fileName');
-            const clearFile = document.getElementById('clearFile');
+            const hasText = textarea.value.trim().length > 0;
+            const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
 
-            if (attachBtn && fileInput) attachBtn.addEventListener('click', () => fileInput.click());
-
-            function refreshFileChip() {
-                if (fileInput.files && fileInput.files.length > 0) {
-                    fileChip.style.display = 'inline-flex';
-                    fileName.textContent = fileInput.files[0].name;
-                } else {
-                    fileChip.style.display = 'none';
-                    fileName.textContent = '';
-                }
+            if (hasText || hasFile) {
+              if (sendBtn) sendBtn.disabled = true;
+              form.submit();
             }
+          }
+        });
+      }
 
-            if (fileInput) fileInput.addEventListener('change', refreshFileChip);
+      // Attach UI
+      const fileInput = document.getElementById('fileInput');
+      const attachBtn = document.getElementById('attachBtn');
+      const fileChip = document.getElementById('fileChip');
+      const fileName = document.getElementById('fileName');
+      const clearFile = document.getElementById('clearFile');
 
-            if (clearFile) {
-                clearFile.addEventListener('click', () => {
-                    fileInput.value = '';
-                    refreshFileChip();
-                });
-            }
+      if (attachBtn && fileInput) attachBtn.addEventListener('click', () => fileInput.click());
 
-            refreshFileChip();
-        })();
-    </script>
+      function refreshFileChip() {
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+          fileChip.style.display = 'inline-flex';
+          fileName.textContent = fileInput.files[0].name;
+        } else {
+          fileChip.style.display = 'none';
+          fileName.textContent = '';
+        }
+      }
+      if (fileInput) fileInput.addEventListener('change', refreshFileChip);
+      if (clearFile) clearFile.addEventListener('click', () => { fileInput.value = ''; refreshFileChip(); });
+      refreshFileChip();
+
+      // Mentions (Level 1 UI-only): highlight @username in rendered messages
+      function escapeHtml(str) {
+        return str
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      document.querySelectorAll('.message-text').forEach(p => {
+        const raw = p.textContent || '';
+        const safe = escapeHtml(raw);
+
+        const withMentions = safe.replace(
+          /(^|\s)@([A-Za-z0-9_]{2,30})\b/g,
+          '$1<span class="mention">@$2</span>'
+        );
+
+        p.innerHTML = withMentions;
+      });
+    })();
+  </script>
 
 </div>
 {% endblock %}

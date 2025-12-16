@@ -10,6 +10,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.db.models import Q
 import random
+from django.views.decorators.http import require_POST
 
 from .models import Project, Task, Profile, EmailOTP,ProjectMessage
 from .forms import UserRegisterForm, ProjectForm, TaskForm, ProfileForm,ProjectMessageForm
@@ -275,17 +276,15 @@ def profile_edit(request):
 
 
 
+
 @login_required
 def project_chat(request, pk):
     project = get_object_or_404(Project, pk=pk)
 
-    # Permission check
     if not is_project_team_member(request.user, project):
         return HttpResponseForbidden("You are not allowed to access this chat.")
 
-    
-    messages_list = project.messages.order_by("created_at") 
-    form = ProjectMessageForm()
+    messages_list = project.messages.order_by("created_at")  # recommended
 
     if request.method == "POST":
         form = ProjectMessageForm(request.POST, request.FILES)
@@ -293,11 +292,39 @@ def project_chat(request, pk):
             msg = form.save(commit=False)
             msg.project = project
             msg.user = request.user
+
+            # ✅ Safety: make sure reply_to belongs to this project
+            if msg.reply_to and msg.reply_to.project_id != project.id:
+                msg.reply_to = None
+
             msg.save()
             return redirect("project_chat", pk=project.id)
+    else:
+        form = ProjectMessageForm()
 
     return render(request, "project_chat.html", {
         "project": project,
         "messages": messages_list,
         "form": form
     })
+
+
+
+
+@require_POST
+@login_required
+def project_message_delete(request, pk, message_id):
+    project = get_object_or_404(Project, pk=pk)
+
+    # Permission check (same as chat)
+    if not is_project_team_member(request.user, project):
+        return HttpResponseForbidden("You are not allowed to access this chat.")
+
+    msg = get_object_or_404(ProjectMessage, id=message_id, project=project)
+
+    # Allow delete: message owner OR project manager
+    if msg.user != request.user and project.manager != request.user:
+        return HttpResponseForbidden("You cannot delete this message.")
+
+    msg.delete()
+    return redirect("project_chat", pk=project.id)

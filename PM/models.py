@@ -68,6 +68,13 @@ class ProjectMessage(models.Model):
     text = models.TextField(blank=True)
     file = models.FileField(upload_to="chat_resources/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    reply_to = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="replies",
+    )
 
     class Meta:
         ordering = ["-created_at"]

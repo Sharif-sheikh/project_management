@@ -33,5 +33,6 @@ urlpatterns = [
     
     # Project Chat
     path("projects/<int:pk>/chat/", views.project_chat, name="project_chat"),
+    path("projects/<int:pk>/chat/messages/<int:message_id>/delete/", views.project_message_delete, name="project_message_delete"),
 
 ]

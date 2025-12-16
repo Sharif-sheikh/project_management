@@ -56,7 +56,7 @@ class ProfileForm(forms.ModelForm):
 class ProjectMessageForm(forms.ModelForm):
     class Meta:
         model = ProjectMessage
-        fields = ["text", "file"]
+        fields = ["text", "file","reply_to"]
 
         widgets = {
             "text": forms.Textarea(attrs={
@@ -64,5 +64,9 @@ class ProjectMessageForm(forms.ModelForm):
                 "class": "form-control",
                 "placeholder": "Write a message..."
             }),
-            "file": forms.ClearableFileInput(attrs={"class": "form-control"})
+            
+            "file": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            
+            "reply_to": forms.HiddenInput(),
         }
+
