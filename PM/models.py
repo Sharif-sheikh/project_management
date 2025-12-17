@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+import secrets
 
 # Project Model
 class Project(models.Model):
@@ -35,6 +36,7 @@ class Task(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
+    assignee_email = models.EmailField(null=True, blank=True, help_text="Email for pending invitation")
     deadline = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="todo")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -81,3 +83,29 @@ class ProjectMessage(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.project.name}"
+
+
+class TaskInvite(models.Model):
+    """Model for managing task assignment invitations via email"""
+    email = models.EmailField()
+    token = models.CharField(max_length=64, unique=True, blank=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="invites", null=True, blank=True)
+    inviter = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_invites")
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["email", "is_active"]),
+            models.Index(fields=["token"]),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(48)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Invite to {self.email} by {self.inviter.username}"

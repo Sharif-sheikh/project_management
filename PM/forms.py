@@ -34,6 +34,14 @@ class TaskForm(forms.ModelForm):
     deadline = forms.DateTimeField(
         widget=forms.DateTimeInput(attrs={"type": "datetime-local"})
     )
+    assignee_email = forms.EmailField(
+        required=False,
+        widget=forms.EmailInput(attrs={
+            "class": "form-control",
+            "placeholder": "Enter email to invite a new user"
+        }),
+        help_text="Leave assignee blank to invite by email"
+    )
 
     class Meta:
         model = Task
@@ -44,6 +52,21 @@ class TaskForm(forms.ModelForm):
             "assignee": forms.Select(attrs={"class": "form-select"}),
             "status": forms.Select(attrs={"class": "form-select"}),
         }
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        assignee = cleaned_data.get("assignee")
+        assignee_email = cleaned_data.get("assignee_email")
+        
+        # Both cannot be empty
+        if not assignee and not assignee_email:
+            raise forms.ValidationError("Please either select an assignee or provide an email address.")
+        
+        # Both cannot be set
+        if assignee and assignee_email:
+            raise forms.ValidationError("Please select either an existing assignee OR provide an email, not both.")
+        
+        return cleaned_data
 
 
 class ProfileForm(forms.ModelForm):
