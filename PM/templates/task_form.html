@@ -34,10 +34,76 @@
                 <form method="post" novalidate>
                     {% csrf_token %}
                     
-                    <!-- Crispy forms will render the fields -->
-                    <div class="mb-4">
-                        {{ form|crispy }}
+                    <!-- Task Title and Description -->
+                    <div class="mb-3">
+                        {{ form.title.label_tag }}
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors }}</div>
+                        {% endif %}
                     </div>
+                    
+                    <div class="mb-3">
+                        {{ form.description.label_tag }}
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Assignment Section -->
+                    <div class="mb-4 p-3 border rounded bg-light">
+                        <h6 class="mb-3">Assignment Options</h6>
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Choose either an existing user OR invite someone by email
+                        </p>
+                        
+                        <div class="mb-3">
+                            {{ form.assignee.label_tag }}
+                            {{ form.assignee }}
+                            {% if form.assignee.errors %}
+                                <div class="text-danger">{{ form.assignee.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-center mb-2">
+                            <small class="text-muted">— OR —</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.assignee_email.label_tag }}
+                            {{ form.assignee_email }}
+                            <small class="form-text text-muted">{{ form.assignee_email.help_text }}</small>
+                            {% if form.assignee_email.errors %}
+                                <div class="text-danger">{{ form.assignee_email.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Deadline and Status -->
+                    <div class="mb-3">
+                        {{ form.deadline.label_tag }}
+                        {{ form.deadline }}
+                        {% if form.deadline.errors %}
+                            <div class="text-danger">{{ form.deadline.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.status.label_tag }}
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Non-field errors -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
                     
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-end gap-2 mt-4">

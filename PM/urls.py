@@ -31,6 +31,9 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     
+    # Invitations
+    path('invite/<str:token>/', views.accept_invite, name='accept_invite'),
+    
     # Project Chat
     path("projects/<int:pk>/chat/", views.project_chat, name="project_chat"),
     path("projects/<int:pk>/chat/messages/<int:message_id>/delete/", views.project_message_delete, name="project_message_delete"),

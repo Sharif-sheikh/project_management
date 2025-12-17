@@ -12,30 +12,111 @@ from django.db.models import Q
 import random
 from django.views.decorators.http import require_POST
 
-from .models import Project, Task, Profile, EmailOTP,ProjectMessage
-from .forms import UserRegisterForm, ProjectForm, TaskForm, ProfileForm,ProjectMessageForm
+from .models import Project, Task, Profile, EmailOTP, ProjectMessage, TaskInvite
+from .forms import UserRegisterForm, ProjectForm, TaskForm, ProfileForm, ProjectMessageForm
 from .utils import is_project_team_member
 
 def generate_otp():
     return str(random.randint(100000, 999999))
+
+
+def create_task_invitation(email, inviter, project, request):
+    """Create a task invitation and send email"""
+    # Check rate limiting: max 10 invites per user per day
+    today = timezone.now().date()
+    today_start = timezone.datetime.combine(today, timezone.datetime.min.time())
+    today_start = timezone.make_aware(today_start)
+    
+    invites_today = TaskInvite.objects.filter(
+        inviter=inviter,
+        created_at__gte=today_start
+    ).count()
+    
+    if invites_today >= 10:
+        return False, "You have reached the maximum number of invitations for today (10)."
+    
+    # Create invitation
+    invite = TaskInvite.objects.create(
+        email=email,
+        inviter=inviter,
+        project=project
+    )
+    
+    # Build invitation URL
+    invite_url = request.build_absolute_uri(
+        f'/invite/{invite.token}/'
+    )
+    
+    # Send email
+    subject = f"You've been invited to join a project on ProjectFlow"
+    message = f"""Hello,
+
+{inviter.username} has invited you to collaborate on a project: {project.name}.
+
+To accept this invitation and view your assigned tasks, please click the link below:
+
+{invite_url}
+
+If you already have an account, you'll be logged in. Otherwise, you can create a new account.
+
+Best regards,
+ProjectFlow Team
+"""
+    
+    try:
+        send_mail(subject, message, settings.EMAIL_HOST_USER, [email])
+        return True, "Invitation sent successfully."
+    except Exception as e:
+        invite.delete()
+        return False, f"Failed to send invitation email: {str(e)}"
+
 
 def home(request):
     return render(request, "home.html")
 # ---------------- AUTH VIEWS ----------------
 
 def register(request):
+    invited_email = request.session.get('invited_email')
+    
     if request.method == "POST":
         form = UserRegisterForm(request.POST)
         if form.is_valid():
+            # If there's an invited email, validate it matches
+            if invited_email and form.cleaned_data['email'] != invited_email:
+                messages.error(request, "Email must match the invitation email.")
+                return render(request, "register.html", {"form": form, "invited_email": invited_email})
+            
             user = form.save()
             otp = generate_otp()
             EmailOTP.objects.create(user=user, otp=otp)
-            send_mail("Your OTP Code", f"Your OTP is {otp}", "shorif.12005011@student.brur.ac.bd", [user.email])
+            send_mail("Your OTP Code", f"Your OTP is {otp}", settings.EMAIL_HOST_USER, [user.email])
+            
+            # Link any pending tasks to this user
+            if invited_email:
+                tasks_updated = Task.objects.filter(assignee_email=invited_email).update(
+                    assignee=user,
+                    assignee_email=None
+                )
+                # Mark invitations as accepted
+                TaskInvite.objects.filter(email=invited_email, is_active=True).update(
+                    accepted_at=timezone.now(),
+                    is_active=False
+                )
+                # Clear session
+                del request.session['invited_email']
+                if tasks_updated > 0:
+                    messages.success(request, f"Welcome! {tasks_updated} task(s) have been assigned to you.")
+            
             messages.info(request, "Check your email for OTP.")
             return redirect('email_verification')
     else:
-        form = UserRegisterForm()
-    return render(request, "register.html", {"form": form})
+        # Pre-fill email if invited
+        initial_data = {}
+        if invited_email:
+            initial_data['email'] = invited_email
+        form = UserRegisterForm(initial=initial_data)
+    
+    return render(request, "register.html", {"form": form, "invited_email": invited_email})
 
 def email_verification(request):
     if request.method == 'POST':
@@ -131,6 +212,18 @@ def forgot_password(request):
 def dashboard(request):
     my_projects = Project.objects.filter(manager=request.user)
     assigned_tasks = Task.objects.filter(assignee=request.user)
+    
+    # Check for pending tasks assigned by email
+    pending_email_tasks = Task.objects.filter(
+        assignee_email=request.user.email,
+        assignee__isnull=True
+    )
+    if pending_email_tasks.exists():
+        # Auto-link them
+        pending_email_tasks.update(assignee=request.user, assignee_email=None)
+        assigned_tasks = Task.objects.filter(assignee=request.user)
+        messages.info(request, f"{pending_email_tasks.count()} pending task(s) have been assigned to you.")
+    
     return render(request, "dashboard.html", {
         "my_projects": my_projects,
         "assigned_tasks": assigned_tasks
@@ -202,6 +295,28 @@ def task_create(request, project_id):
         if form.is_valid():
             task = form.save(commit=False)
             task.project = project
+            
+            # Handle email assignment
+            assignee_email = form.cleaned_data.get('assignee_email')
+            if assignee_email:
+                # Check if user exists with this email
+                try:
+                    existing_user = User.objects.get(email=assignee_email)
+                    task.assignee = existing_user
+                    task.assignee_email = None
+                except User.DoesNotExist:
+                    # Create invitation
+                    task.assignee = None
+                    task.assignee_email = assignee_email
+                    task.save()
+                    
+                    success, msg = create_task_invitation(assignee_email, request.user, project, request)
+                    if success:
+                        messages.success(request, "Task created and invitation sent!")
+                    else:
+                        messages.warning(request, f"Task created but invitation failed: {msg}")
+                    return redirect("project_detail", pk=project.id)
+            
             task.save()
             messages.success(request, "Task created successfully!")
             return redirect("project_detail", pk=project.id)
@@ -216,15 +331,43 @@ def task_edit(request, pk):
     project = task.project
     if project.manager != request.user:
         return HttpResponseForbidden("Only the project manager can edit this project.")
-    task = get_object_or_404(Task, pk=pk)
+    
     if request.method == "POST":
         form = TaskForm(request.POST, instance=task)
         if form.is_valid():
-            form.save()
+            task = form.save(commit=False)
+            
+            # Handle email assignment
+            assignee_email = form.cleaned_data.get('assignee_email')
+            if assignee_email:
+                # Check if user exists with this email
+                try:
+                    existing_user = User.objects.get(email=assignee_email)
+                    task.assignee = existing_user
+                    task.assignee_email = None
+                except User.DoesNotExist:
+                    # Create invitation
+                    task.assignee = None
+                    task.assignee_email = assignee_email
+                    task.save()
+                    
+                    success, msg = create_task_invitation(assignee_email, request.user, project, request)
+                    if success:
+                        messages.success(request, "Task updated and invitation sent!")
+                    else:
+                        messages.warning(request, f"Task updated but invitation failed: {msg}")
+                    return redirect("project_detail", pk=task.project.id)
+            
+            task.save()
             messages.success(request, "Task updated successfully!")
             return redirect("project_detail", pk=task.project.id)
     else:
-        form = TaskForm(instance=task)
+        # Pre-fill assignee_email if task has a pending email
+        initial_data = {}
+        if task.assignee_email:
+            initial_data['assignee_email'] = task.assignee_email
+        form = TaskForm(instance=task, initial=initial_data)
+    
     return render(request, "task_form.html", {"form": form, "project": task.project})
 
 
@@ -248,6 +391,43 @@ def task_update_status(request, pk, status):
     task.save()
     messages.success(request, f"Task marked as {status}.")
     return redirect("dashboard")
+
+
+# ---------------- INVITE VIEWS ----------------
+
+def accept_invite(request, token):
+    """Handle invitation acceptance"""
+    invite = get_object_or_404(TaskInvite, token=token, is_active=True)
+    
+    # Check if user exists with this email
+    try:
+        existing_user = User.objects.get(email=invite.email)
+        # User exists - log them in or redirect to login
+        if request.user.is_authenticated:
+            if request.user.email == invite.email:
+                # Already logged in with correct account
+                # Link pending tasks
+                Task.objects.filter(assignee_email=invite.email).update(
+                    assignee=request.user,
+                    assignee_email=None
+                )
+                invite.accepted_at = timezone.now()
+                invite.is_active = False
+                invite.save()
+                messages.success(request, "Invitation accepted! Tasks have been assigned to you.")
+                return redirect("dashboard")
+            else:
+                messages.warning(request, "Please log in with the invited email address.")
+                return redirect("login")
+        else:
+            # Not logged in - redirect to login
+            messages.info(request, f"Please log in with {invite.email} to accept this invitation.")
+            return redirect("login")
+    except User.DoesNotExist:
+        # User doesn't exist - redirect to registration with email in session
+        request.session['invited_email'] = invite.email
+        messages.info(request, "Please create an account to accept this invitation.")
+        return redirect("register")
 
 
 # ---------------- PROFILE VIEWS ----------------
