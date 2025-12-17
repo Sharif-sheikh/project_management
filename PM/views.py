@@ -69,7 +69,31 @@ ProjectFlow Team
     except Exception as e:
         # Keep the invite even if email fails (e.g., in testing/dev environments)
         # In production, you may want to handle this differently
-        return True, f"Invitation created (email may not have been sent: {str(e)})"
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send invitation email to {email}: {str(e)}")
+        return True, "Invitation created but email could not be sent."
+
+
+def handle_email_assignment(task, assignee_email, inviter, project, request):
+    """Handle task assignment by email - checks if user exists or creates invitation"""
+    try:
+        existing_user = User.objects.get(email=assignee_email)
+        task.assignee = existing_user
+        task.assignee_email = None
+        task.save()
+        return True, "Task assigned to existing user."
+    except User.DoesNotExist:
+        # Create invitation
+        task.assignee = None
+        task.assignee_email = assignee_email
+        task.save()
+        
+        success, msg = create_task_invitation(assignee_email, inviter, project, request)
+        if success:
+            return True, "Task created and invitation sent!"
+        else:
+            return False, f"Task created but invitation failed: {msg}"
 
 
 def home(request):
@@ -300,23 +324,12 @@ def task_create(request, project_id):
             # Handle email assignment
             assignee_email = form.cleaned_data.get('assignee_email')
             if assignee_email:
-                # Check if user exists with this email
-                try:
-                    existing_user = User.objects.get(email=assignee_email)
-                    task.assignee = existing_user
-                    task.assignee_email = None
-                except User.DoesNotExist:
-                    # Create invitation
-                    task.assignee = None
-                    task.assignee_email = assignee_email
-                    task.save()
-                    
-                    success, msg = create_task_invitation(assignee_email, request.user, project, request)
-                    if success:
-                        messages.success(request, "Task created and invitation sent!")
-                    else:
-                        messages.warning(request, f"Task created but invitation failed: {msg}")
-                    return redirect("project_detail", pk=project.id)
+                success, msg = handle_email_assignment(task, assignee_email, request.user, project, request)
+                if success:
+                    messages.success(request, msg)
+                else:
+                    messages.warning(request, msg)
+                return redirect("project_detail", pk=project.id)
             
             task.save()
             messages.success(request, "Task created successfully!")
@@ -341,23 +354,12 @@ def task_edit(request, pk):
             # Handle email assignment
             assignee_email = form.cleaned_data.get('assignee_email')
             if assignee_email:
-                # Check if user exists with this email
-                try:
-                    existing_user = User.objects.get(email=assignee_email)
-                    task.assignee = existing_user
-                    task.assignee_email = None
-                except User.DoesNotExist:
-                    # Create invitation
-                    task.assignee = None
-                    task.assignee_email = assignee_email
-                    task.save()
-                    
-                    success, msg = create_task_invitation(assignee_email, request.user, project, request)
-                    if success:
-                        messages.success(request, "Task updated and invitation sent!")
-                    else:
-                        messages.warning(request, f"Task updated but invitation failed: {msg}")
-                    return redirect("project_detail", pk=task.project.id)
+                success, msg = handle_email_assignment(task, assignee_email, request.user, project, request)
+                if success:
+                    messages.success(request, msg)
+                else:
+                    messages.warning(request, msg)
+                return redirect("project_detail", pk=task.project.id)
             
             task.save()
             messages.success(request, "Task updated successfully!")

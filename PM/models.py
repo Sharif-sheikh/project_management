@@ -88,7 +88,7 @@ class ProjectMessage(models.Model):
 class TaskInvite(models.Model):
     """Model for managing task assignment invitations via email"""
     email = models.EmailField()
-    token = models.CharField(max_length=64, unique=True, default=secrets.token_urlsafe)
+    token = models.CharField(max_length=64, unique=True, blank=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="invites", null=True, blank=True)
     inviter = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_invites")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -101,6 +101,11 @@ class TaskInvite(models.Model):
             models.Index(fields=["email", "is_active"]),
             models.Index(fields=["token"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(48)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Invite to {self.email} by {self.inviter.username}"
